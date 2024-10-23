@@ -1,3 +1,4 @@
+# Serve supercollider radio at http://localhost:8000/radio.mp3
 FROM nginxproxy/forego:latest as forego-container
 
 FROM ubuntu:20.04 as builder
@@ -30,11 +31,11 @@ RUN apt-get update \
   libudev-dev \
   libxt-dev \
   pkg-config \
+  ffmpeg \
   unzip \
   wget \
   xvfb \
   libncurses5-dev \
-  ffmpeg \
   gpg \
   gnupg \
   && rm -rf /var/lib/apt/lists/*
@@ -94,6 +95,7 @@ RUN apt-get update \
   && apt-get clean
 
 COPY --from=builder /usr/local /usr/local
+COPY --from=builder /usr/bin /usr/bin
 COPY --from=builder /root /root
 
 COPY icecast.xml /etc/icecast2/icecast.xml

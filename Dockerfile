@@ -1,3 +1,5 @@
+FROM nginxproxy/forego:latest as forego-container
+
 FROM ubuntu:20.04 as builder
 
 ENV LANG C.UTF-8
@@ -10,29 +12,31 @@ ENV SC_PLUGIN_VERSION 3.11.1
 RUN apt-get update \
   && apt-get -y upgrade \
   && apt-get install -yq --no-install-recommends \
-    build-essential \
-    bzip2 \
-    ca-certificates \
-    cmake \
-    git \
-    jackd \
-    libasound2-dev \
-    libavahi-client-dev \
-    libcwiid-dev \
-    libfftw3-dev \
-    libicu-dev \
-    libjack-dev \
-    libjack0 \
-    libreadline6-dev \
-    libsndfile1-dev \
-    libudev-dev \
-    libxt-dev \
-    pkg-config \
-    unzip \
-    wget \
-    xvfb \
-    libncurses5-dev \
-  \
+  build-essential \
+  bzip2 \
+  ca-certificates \
+  cmake \
+  git \
+  jackd \
+  libasound2-dev \
+  libavahi-client-dev \
+  libcwiid-dev \
+  libfftw3-dev \
+  libicu-dev \
+  libjack-dev \
+  libjack0 \
+  libreadline6-dev \
+  libsndfile1-dev \
+  libudev-dev \
+  libxt-dev \
+  pkg-config \
+  unzip \
+  wget \
+  xvfb \
+  libncurses5-dev \
+  ffmpeg \
+  gpg \
+  gnupg \
   && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p $HOME/src \
@@ -63,11 +67,10 @@ COPY install.scd /install.scd
 COPY asoundrc /root/.asoundrc
 COPY startup.scd /root/.config/SuperCollider/
 
-RUN wget -q https://bin.equinox.io/c/ekMN3bCZFUn/forego-stable-linux-amd64.tgz -O forego.tgz && \
-	tar xvf forego.tgz && \
-	rm forego.tgz && \
-	chmod +x forego && \
-    mv forego /usr/local/bin/forego && \
+# Copy the forego binary from the forego-container
+COPY --from=forego-container /usr/local/bin/forego /usr/local/bin/forego
+
+RUN chmod +x /usr/local/bin/forego && \
     xvfb-run -a sclang -D /install.scd && \
     echo "ok"
 
@@ -75,23 +78,35 @@ FROM ubuntu:20.04
 
 ENV DEBIAN_FRONTEND noninteractive
 
-RUN apt-get update && \
-	apt-get install -y wget software-properties-common && \
-    echo deb http://download.opensuse.org/repositories/multimedia:/xiph/xUbuntu_18.04/ ./ >>/etc/apt/sources.list.d/icecast.list && \
-	add-apt-repository -y multiverse && \
-    wget -qO - https://icecast.org/multimedia-obs.key | apt-key add - && \
-	apt-get update && \
-    apt-get install -y icecast2 darkice libasound2 libasound2-plugins alsa-utils alsa-oss jackd1 jack-tools xvfb libreadline-dev && \
-    apt-get clean
+RUN apt-get update \
+  && apt-get -y upgrade \
+  && apt-get install -yq --no-install-recommends \
+    build-essential \
+    bzip2 \
+    ca-certificates \
+    wget \
+    gnupg \
+  && apt-get install -yq icecast2 darkice libasound2 libasound2-plugins alsa-utils alsa-oss jackd1 jack-tools xvfb libreadline-dev \
+  && wget -qO - https://apt.kitware.com/keys/kitware-archive-latest.asc | gpg --dearmor > /usr/share/keyrings/kitware-archive-keyring.gpg \
+  && echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ bionic main' | tee /etc/apt/sources.list.d/kitware.list > /dev/null \
+  && apt-get update \
+  && apt-get install -yq cmake \
+  && apt-get clean
 
 COPY --from=builder /usr/local /usr/local
 COPY --from=builder /root /root
 
 COPY icecast.xml /etc/icecast2/icecast.xml
 COPY darkice.cfg /etc/darkice.cfg
+COPY darkice.sh /etc/darkice.sh
+RUN chmod +x /etc/darkice.sh
+COPY sclang.sh /etc/sclang.sh
+RUN chmod +x /etc/sclang.sh
+COPY icecast.sh /etc/icecast.sh
+RUN chmod +x /etc/icecast.sh
 
-#COPY radio /radio
-#COPY config.scd /radio/config.scd
+COPY radio /radio
+COPY config.scd /radio/config.scd
 
 COPY Procfile Procfile
 

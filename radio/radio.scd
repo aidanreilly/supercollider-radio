@@ -1,8 +1,7 @@
 // Temporary radio
 
 s.waitForBoot {
-	// var main = "main.scd".loadRelative[0];
-s.record(duration:1800);
+	// s.record(duration:1800);
 
 {
 	arg hz=440,amp=1.0;
@@ -36,12 +35,5 @@ s.record(duration:1800);
 	snd=snd*EnvGen.ar(Env.new([0,1],[4]));
 	Out.ar(0,snd*(-10.dbamp));
 }.play;
-
-
-
-
-	// if (main.isStopped) {
-	// 	main.play
-	// };
 
 }

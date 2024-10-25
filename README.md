@@ -14,7 +14,7 @@ podman push oootini/supercollider-radio:latest-amd64
 podman build -t oootini/marina-radio:latest-amd64 -f marina.Dockerfile --platform linux/amd64
 podman push oootini/marina-radio:latest-amd64
 
-podman build -t oootini/marina-radio:latest-arm64 -f marina.Dockerfile --platform linux/amd64
+podman build -t oootini/marina-radio:latest-arm64 -f marina.Dockerfile --platform linux/arm64
 podman push oootini/marina-radio:latest-arm64
 ```
 
